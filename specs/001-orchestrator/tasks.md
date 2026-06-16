@@ -91,7 +91,7 @@ description: "Task list for Orchestrator Agent feature implementation"
 
 **Independent Test**: Call `run()` with empty string or 1000+ char string; verify immediate error response without any API calls.
 
-- [ ] T016 [US4] Add input validation to `Orchestrator.run()` in `backend/agents/orchestrator.py`: reject empty `user_query` with `{"detail": "user_query must not be empty", "code": "INVALID_INPUT"}` and queries over 1000 chars with `{"detail": "user_query exceeds maximum length of 1000", "code": "INVALID_INPUT"}`
+- [X] T016 [US4] Add input validation to `Orchestrator.run()` in `backend/agents/orchestrator.py`: reject empty `user_query` with `{"detail": "user_query must not be empty", "code": "INVALID_INPUT"}` and queries over 1000 chars with `{"detail": "user_query exceeds maximum length of 1000", "code": "INVALID_INPUT"}`
 
 **Checkpoint**: All 4 user stories complete — invalid queries rejected before any sub-agent work
 

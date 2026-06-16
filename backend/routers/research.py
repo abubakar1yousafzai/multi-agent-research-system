@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from models.research import FinalReport, ResearchRequest
-from agents.orchestrator import Orchestrator
+from agents.orchestrator import InvalidInputError, Orchestrator
 
 router = APIRouter(prefix="/api/v1/research", tags=["research"])
 
@@ -19,7 +19,13 @@ async def run_research(request: ResearchRequest):
             session_id=request.session_id,
         )
         _active_orchestrators[request.session_id] = orchestrator
-    report = await orchestrator.run()
+    try:
+        report = await orchestrator.run()
+    except InvalidInputError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={"detail": e.detail, "code": e.code},
+        )
     return report
 
 
