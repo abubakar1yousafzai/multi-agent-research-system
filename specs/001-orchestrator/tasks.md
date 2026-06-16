@@ -65,8 +65,8 @@ description: "Task list for Orchestrator Agent feature implementation"
 
 **Independent Test**: Subscribe to the SSE stream and verify 8 events per run (start + complete for each of 4 agents) in correct order.
 
-- [ ] T012 [P] [US2] Add async event emission to `Orchestrator.run()` in `backend/agents/orchestrator.py` — emit `StatusUpdate` events (`{"agent": "...", "status": "running"}` and `{"agent": "...", "status": "completed"}`) before and after each sub-agent call via an asyncio.Queue or callback
-- [ ] T013 [US2] Add GET `/api/v1/research/stream/{session_id}` SSE streaming endpoint in `backend/routers/research.py` that subscribes to orchestrator events and yields SSE-formatted `StatusUpdate` messages
+- [X] T012 [P] [US2] Add async event emission to `Orchestrator.run()` in `backend/agents/orchestrator.py` — emit `StatusUpdate` events (`{"agent": "...", "status": "running"}` and `{"agent": "...", "status": "completed"}`) before and after each sub-agent call via an asyncio.Queue or callback
+- [X] T013 [US2] Add GET `/api/v1/research/stream/{session_id}` SSE streaming endpoint in `backend/routers/research.py` that subscribes to orchestrator events and yields SSE-formatted `StatusUpdate` messages
 
 **Checkpoint**: User Stories 1 AND 2 both work — POST returns report, SSE streams status updates
 

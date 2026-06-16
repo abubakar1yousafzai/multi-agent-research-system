@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from typing import Optional
@@ -64,6 +65,8 @@ class Orchestrator:
         self.session_id = session_id
         self.agent_statuses: list[AgentResult] = []
         self._status_callbacks: list[callable] = []
+        self.status_queue: asyncio.Queue[StatusUpdate] = asyncio.Queue()
+        self._run_complete: asyncio.Event = asyncio.Event()
 
     def on_status_update(self, callback: callable):
         self._status_callbacks.append(callback)
@@ -72,6 +75,7 @@ class Orchestrator:
         update = StatusUpdate(agent=agent, status=status, detail=detail)
         for cb in self._status_callbacks:
             cb(update)
+        self.status_queue.put_nowait(update)
 
     async def run(self) -> FinalReport:
         logger.info(
@@ -110,4 +114,5 @@ class Orchestrator:
             agent_statuses=self.agent_statuses,
         )
         logger.info("Orchestrator pipeline complete for session: %s", self.session_id)
+        self._run_complete.set()
         return report
