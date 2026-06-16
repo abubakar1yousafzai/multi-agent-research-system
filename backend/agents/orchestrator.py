@@ -6,7 +6,11 @@ from typing import Optional
 from openai import OpenAI
 from models.research import AgentResult, FinalReport, StatusUpdate
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 groq_client: Optional[OpenAI] = None
@@ -77,42 +81,60 @@ class Orchestrator:
             cb(update)
         self.status_queue.put_nowait(update)
 
+    async def _run_agent(self, name: str, func: callable, input_data: dict) -> AgentResult:
+        logger.info("Agent '%s' starting", name, extra={"agent": name, "phase": "start"})
+        self._emit_status(name, "running")
+        try:
+            result = await func(input_data)
+            result.agent_name = name
+            self.agent_statuses.append(result)
+            logger.info(
+                "Agent '%s' completed", name,
+                extra={"agent": name, "phase": "completed", "status": result.status},
+            )
+            self._emit_status(name, "completed")
+            return result
+        except Exception as e:
+            detail = str(e)
+            logger.error(
+                "Agent '%s' failed: %s", name, detail,
+                extra={"agent": name, "phase": "failed", "error": detail},
+            )
+            error_result = AgentResult(agent_name=name, status="error", data={}, error=detail)
+            self.agent_statuses.append(error_result)
+            self._emit_status(name, "error", detail=detail)
+            return error_result
+
     async def run(self) -> FinalReport:
         logger.info(
             "Orchestrator starting pipeline for query: %s, session: %s",
             self.user_query,
             self.session_id,
+            extra={"phase": "pipeline_start", "query": self.user_query, "session": self.session_id},
         )
 
-        self._emit_status("web_search", "running")
-        web_result = await mock_web_search({"query": self.user_query})
-        self.agent_statuses.append(web_result)
-        self._emit_status("web_search", "completed")
+        web_result = await self._run_agent("web_search", mock_web_search, {"query": self.user_query})
+        research_result = await self._run_agent("research", mock_research, web_result.data if web_result.status != "error" else {})
+        analyzer_result = await self._run_agent("analyzer", mock_analyzer, research_result.data if research_result.status != "error" else {})
+        reporter_result = await self._run_agent("reporter", mock_reporter, analyzer_result.data if analyzer_result.status != "error" else {})
 
-        self._emit_status("research", "running")
-        research_result = await mock_research(web_result.data)
-        self.agent_statuses.append(research_result)
-        self._emit_status("research", "completed")
-
-        self._emit_status("analyzer", "running")
-        analyzer_result = await mock_analyzer(research_result.data)
-        self.agent_statuses.append(analyzer_result)
-        self._emit_status("analyzer", "completed")
-
-        self._emit_status("reporter", "running")
-        reporter_result = await mock_reporter(analyzer_result.data)
-        self.agent_statuses.append(reporter_result)
-        self._emit_status("reporter", "completed")
+        last_result = reporter_result if reporter_result.status != "error" else \
+                      analyzer_result if analyzer_result.status != "error" else \
+                      research_result if research_result.status != "error" else \
+                      web_result
 
         report = FinalReport(
             session_id=self.session_id,
-            summary=reporter_result.data.get("report", "No summary generated"),
+            summary=last_result.data.get("report", "Partial results with some agent failures") if last_result.status != "error" else "Pipeline completed with errors",
             details={
                 "query": self.user_query,
                 "agent_count": len(self.agent_statuses),
             },
             agent_statuses=self.agent_statuses,
         )
-        logger.info("Orchestrator pipeline complete for session: %s", self.session_id)
+        logger.info(
+            "Orchestrator pipeline complete for session: %s", self.session_id,
+            extra={"phase": "pipeline_end", "session": self.session_id, "status": "completed"},
+        )
         self._run_complete.set()
         return report

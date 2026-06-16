@@ -78,8 +78,8 @@ description: "Task list for Orchestrator Agent feature implementation"
 
 **Independent Test**: Make a sub-agent throw an exception; verify Orchestrator returns partial results with error detail instead of crashing.
 
-- [ ] T014 [US3] Wrap each sub-agent call in `Orchestrator.run()` in `backend/agents/orchestrator.py` with try/except — on failure emit `{"agent": "...", "status": "error", "detail": "..."}` SSE event, log the error, and continue pipeline with available data
-- [ ] T015 [US3] Add structured logging with timestamps for every agent start, completion, and failure in `backend/agents/orchestrator.py`
+- [X] T014 [US3] Wrap each sub-agent call in `Orchestrator.run()` in `backend/agents/orchestrator.py` with try/except — on failure emit `{"agent": "...", "status": "error", "detail": "..."}` SSE event, log the error, and continue pipeline with available data
+- [X] T015 [US3] Add structured logging with timestamps for every agent start, completion, and failure in `backend/agents/orchestrator.py`
 
 **Checkpoint**: User Stories 1–3 functional — pipeline recovers from individual agent failures
 
