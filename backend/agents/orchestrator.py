@@ -63,6 +63,13 @@ async def mock_reporter(input_data: dict) -> AgentResult:
     )
 
 
+class InvalidInputError(Exception):
+    def __init__(self, detail: str, code: str = "INVALID_INPUT"):
+        self.detail = detail
+        self.code = code
+        super().__init__(detail)
+
+
 class Orchestrator:
     def __init__(self, user_query: str, session_id: str):
         self.user_query = user_query
@@ -106,6 +113,19 @@ class Orchestrator:
             return error_result
 
     async def run(self) -> FinalReport:
+        if not self.user_query or not self.user_query.strip():
+            logger.error("Empty user_query rejected")
+            raise InvalidInputError(
+                detail="user_query must not be empty",
+                code="INVALID_INPUT",
+            )
+        if len(self.user_query) > 1000:
+            logger.error("user_query exceeds maximum length")
+            raise InvalidInputError(
+                detail="user_query exceeds maximum length of 1000",
+                code="INVALID_INPUT",
+            )
+
         logger.info(
             "Orchestrator starting pipeline for query: %s, session: %s",
             self.user_query,
